@@ -1,15 +1,15 @@
 import time
 import random
 import string
-from pymongo import MongoClient
+from pymongo import MongoClient, ASCENDING,DESCENDING
 
 
 ES_HOST = 'http://localhost:9200'
 
 # 分页参数
 INDEX_NAME = "test"
-PAGE_SIZE = 20  # 每页的文档数量
-TOTAL_PAGES = 2000  # 要查询的总页数
+PAGE_SIZE = 10  # 每页的文档数量
+TOTAL_PAGES = 1000  # 要查询的总页数
 
 # MongoDB 配置
 MONGO_URI = 'mongodb://localhost:27017'
@@ -47,16 +47,23 @@ def test_mongo_cursor_pull(mongo_collection):
     """ 游标动态分页拉取 """
     print("开始动态分页查询")
     last_value = None
+    last_id = None
     start = time.time()
     while True:
         if last_value:
-            query = {"value": {"$gt": last_value}}
+            query = {
+                "$or": [
+                    {"value": {"$gt": last_value}}, 
+                    {"value": last_value, "id": {"$gt": last_id}}
+                ]
+            }
         else:
             query = {}
-        results = list(mongo_collection.find(query).sort("value").limit(PAGE_SIZE))
+        results = list(mongo_collection.find(query).sort({"value": 1, "id": 1}).limit(PAGE_SIZE))
         if not results:
             break
         last_value = results[-1]["value"]
+        last_id = results[-1]["id"]
     print(f"all_time: {time.time() - start}")
 
 
@@ -76,6 +83,9 @@ if __name__ == "__main__":
     mongo_collection = mongo_db[INDEX_NAME]
     create_docs(mongo_collection, PAGE_SIZE * TOTAL_PAGES)
     # 基本拉取
+    # mongo_collection.create_index([("value", ASCENDING), ("id", DESCENDING)])
+    mongo_collection.create_index([("value", ASCENDING)])
+    mongo_collection.create_index([("id", ASCENDING)])
     test_mongo_base_pull(mongo_collection)
     # 超大数据量大页码单次拉取
     # test_mongo_single_large_start_pull(mongo_collection)
