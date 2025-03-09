@@ -1,7 +1,8 @@
 FROM debian:12
 
 # mongo
-RUN apt-get install gnupg curl
+RUN apt-get update
+RUN apt-get install -y gnupg curl sudo
 RUN cd /home && mkdir mongo
 RUN curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | \
 sudo gpg -o /usr/share/keyrings/mongodb-server-8.0.gpg \

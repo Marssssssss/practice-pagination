@@ -4,19 +4,19 @@ import string
 from elasticsearch import Elasticsearch
 
 
-ES_HOST = 'http://192.168.31.197:9200'
+ES_HOST = 'http://localhost:9200'
 
 # 分页参数
 INDEX_NAME = "test"
 PAGE_SIZE = 10  # 每页的文档数量
-TOTAL_PAGES = 5  # 要查询的总页数
+TOTAL_PAGES = 500  # 要查询的总页数
 
 
 def create_index_with_docs(es_client, index_count):
     """ 创建 elasticsearch 索引，并生成指定数量的数据 """
-    if not es_client.indices.exists(index=INDEX_NAME):
-        es_client.indices.create(index=INDEX_NAME)
-
+    if es_client.indices.exists(index=INDEX_NAME):
+        es_client.indices.delete(index=INDEX_NAME)
+    es_client.indices.create(index=INDEX_NAME)
     def random_string(length=10):
         letters = string.ascii_letters
         return ''.join(random.choice(letters) for i in range(length))
@@ -35,7 +35,7 @@ def create_index_with_docs(es_client, index_count):
 def test_elasticsearch_base_pull(es_client):
     """ elasticsearch 基本拉取分页 """
     print("start Elasticsearch paging...")
-
+    start_time = time.time()
     for page in range(TOTAL_PAGES):
         page_start_time = time.time()
         from_param = page * PAGE_SIZE
@@ -50,6 +50,7 @@ def test_elasticsearch_base_pull(es_client):
             }
         )
         print(f"Elasticsearch - Page {page + 1}: {len(response['hits']['hits'])} documents fetched in {time.time() - page_start_time:.4f} seconds.")
+    print(f"all time: {time.time() - start_time}")
 
 
 if __name__ == "__main__":
