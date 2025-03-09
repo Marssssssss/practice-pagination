@@ -8,8 +8,8 @@ ES_HOST = 'http://localhost:9200'
 
 # 分页参数
 INDEX_NAME = "test"
-PAGE_SIZE = 400  # 每页的文档数量
-TOTAL_PAGES = 500  # 要查询的总页数
+PAGE_SIZE = 20  # 每页的文档数量
+TOTAL_PAGES = 2000  # 要查询的总页数
 
 # MongoDB 配置
 MONGO_URI = 'mongodb://localhost:27017'
@@ -37,7 +37,7 @@ def test_mongo_base_pull(mongo_collection):
     start = time.time()
     for page in range(TOTAL_PAGES):
         start_time = time.time()
-        cursor = mongo_collection.find().sort({"_id": 1}).skip(page * PAGE_SIZE).limit(PAGE_SIZE)
+        cursor = mongo_collection.find().sort({"value": 1}).skip(page * PAGE_SIZE).limit(PAGE_SIZE)
         results = list(cursor)
         end_time = time.time()
     print(f"all_time: {time.time() - start}")
@@ -49,14 +49,14 @@ def test_mongo_cursor_pull(mongo_collection):
     last_value = None
     start = time.time()
     while True:
-        if last_id:
-            query = {"_id": {"$gt": last_id}}
+        if last_value:
+            query = {"value": {"$gt": last_value}}
         else:
             query = {}
-        results = list(collection.find(query).sort("_id").limit(page_size))
+        results = list(mongo_collection.find(query).sort("value").limit(PAGE_SIZE))
         if not results:
             break
-        last_id = results[-1["_id"]]
+        last_value = results[-1]["value"]
     print(f"all_time: {time.time() - start}")
 
 
@@ -71,14 +71,15 @@ if __name__ == "__main__":
     # 创建数据
     mongo_client = MongoClient(MONGO_URI)
     mongo_db = mongo_client[INDEX_NAME]
-    # if INDEX_NAME in mongo_db.list_collection_names():
-    #     mongo_db.drop_collection(INDEX_NAME)
+    if INDEX_NAME in mongo_db.list_collection_names():
+        mongo_db.drop_collection(INDEX_NAME)
     mongo_collection = mongo_db[INDEX_NAME]
-    # create_docs(mongo_collection, PAGE_SIZE * TOTAL_PAGES)
+    create_docs(mongo_collection, PAGE_SIZE * TOTAL_PAGES)
     # 基本拉取
-    # test_mongo_base_pull(mongo_collection)
+    test_mongo_base_pull(mongo_collection)
     # 超大数据量大页码单次拉取
-    test_mongo_single_large_start_pull(mongo_collection)
+    # test_mongo_single_large_start_pull(mongo_collection)
+    test_mongo_cursor_pull(mongo_collection)
 
     
     indexes = mongo_collection.index_information()

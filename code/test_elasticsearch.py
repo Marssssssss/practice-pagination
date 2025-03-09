@@ -8,8 +8,8 @@ ES_HOST = 'http://localhost:9200'
 
 # 分页参数
 INDEX_NAME = "test"
-PAGE_SIZE = 400  # 每页的文档数量
-TOTAL_PAGES = 500  # 要查询的总页数
+PAGE_SIZE = 10  # 每页的文档数量
+TOTAL_PAGES = 1000  # 要查询的总页数
 
 
 def create_index_with_docs(es_client, index_count):
@@ -63,7 +63,6 @@ def test_elasticsearch_base_pull(es_client):
                 "size": PAGE_SIZE
             }
         )
-        print(f"Elasticsearch - Page {page + 1}: {len(response['hits']['hits'])} documents fetched in {time.time() - page_start_time:.4f} seconds.")
     print(f"all time: {time.time() - start_time}")
 
 
@@ -79,11 +78,12 @@ def test_elasticsearch_cursor_pull(es_client):
             "size": PAGE_SIZE,
             "sort": [
                 {"value": "asc"},
-                {"_id": "asc"}         # 作为二次排序，确保唯一性
+                {"id": "asc"}         # 作为二次排序，确保唯一性
             ],
-            "search_after": search_after  # 使用上一次查询的最后一条文档的排序值
         }
-        search_response = es.search(index=INDEX_NAME, body=search_query)
+        if search_after:
+            search_query["search_after"] = search_after
+        search_response = es_client.search(index=INDEX_NAME, body=search_query)
         hits = search_response['hits']['hits']
         if not hits:
             break
@@ -117,8 +117,9 @@ def test_elasticsearch_single_large_start_pull(es_client):
 if __name__ == "__main__":
     # 创建数据
     es_client = Elasticsearch(ES_HOST)
-    # create_index_with_docs(es_client, PAGE_SIZE * TOTAL_PAGES)
+    create_index_with_docs(es_client, PAGE_SIZE * TOTAL_PAGES)
     # 基本拉取
-    # test_elasticsearch_base_pull(es_client)
+    test_elasticsearch_base_pull(es_client)
     # 超大数据量大页码拉取
-    test_elasticsearch_single_large_start_pull(es_client)
+    # test_elasticsearch_single_large_start_pull(es_client)
+    test_elasticsearch_cursor_pull(es_client)
