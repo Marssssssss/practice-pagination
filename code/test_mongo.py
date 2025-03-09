@@ -47,23 +47,18 @@ def test_mongo_cursor_pull(mongo_collection):
     """ 游标动态分页拉取 """
     print("开始动态分页查询")
     last_value = None
-    last_id = None
     start = time.time()
     while True:
         if last_value:
             query = {
-                "$or": [
-                    {"value": {"$gt": last_value}}, 
-                    {"value": last_value, "id": {"$gt": last_id}}
-                ]
+                "value": {"$gt": last_value}
             }
         else:
             query = {}
-        results = list(mongo_collection.find(query).sort({"value": 1, "id": 1}).limit(PAGE_SIZE))
+        results = list(mongo_collection.find(query).sort({"value": 1}).limit(PAGE_SIZE))
         if not results:
             break
         last_value = results[-1]["value"]
-        last_id = results[-1]["id"]
     print(f"all_time: {time.time() - start}")
 
 
@@ -85,7 +80,6 @@ if __name__ == "__main__":
     # 基本拉取
     # mongo_collection.create_index([("value", ASCENDING), ("id", DESCENDING)])
     mongo_collection.create_index([("value", ASCENDING)])
-    mongo_collection.create_index([("id", ASCENDING)])
     test_mongo_base_pull(mongo_collection)
     # 超大数据量大页码单次拉取
     # test_mongo_single_large_start_pull(mongo_collection)
