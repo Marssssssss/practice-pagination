@@ -8,7 +8,7 @@ ES_HOST = 'http://localhost:9200'
 
 # 分页参数
 INDEX_NAME = "test"
-PAGE_SIZE = 10  # 每页的文档数量
+PAGE_SIZE = 400  # 每页的文档数量
 TOTAL_PAGES = 500  # 要查询的总页数
 
 
@@ -17,6 +17,15 @@ def create_index_with_docs(es_client, index_count):
     if es_client.indices.exists(index=INDEX_NAME):
         es_client.indices.delete(index=INDEX_NAME)
     es_client.indices.create(index=INDEX_NAME)
+    
+    settings = {
+        "index": {
+            "max_result_window": 1000000,
+        }
+    }
+
+    es_client.indices.put_settings(body=settings, index=INDEX_NAME)
+
     def random_string(length=10):
         letters = string.ascii_letters
         return ''.join(random.choice(letters) for i in range(length))
@@ -45,6 +54,11 @@ def test_elasticsearch_base_pull(es_client):
                 "query": {
                     "match_all": {}
                 },
+                "sort": {
+                    "value": {
+                        "order": "asc",
+                    }
+                },
                 "from": from_param,
                 "size": PAGE_SIZE
             }
@@ -53,9 +67,34 @@ def test_elasticsearch_base_pull(es_client):
     print(f"all time: {time.time() - start_time}")
 
 
+def test_elasticsearch_single_large_start_pull(es_client):
+    """ 超大数据量大页码拉取 """
+    
+    start_time = time.time()
+    from_param = (TOTAL_PAGES - 1) * PAGE_SIZE
+    response = es_client.search(
+        index=INDEX_NAME,  # 替换为你的索引名
+        body={
+            "query": {
+                "match_all": {}
+            },
+            "sort": {
+                "value": {
+                    "order": "asc",
+                }
+            },
+            "from": from_param,
+            "size": PAGE_SIZE
+        }
+    )
+    print(f"all time: {time.time() - start_time}")
+
+
 if __name__ == "__main__":
     # 创建数据
     es_client = Elasticsearch(ES_HOST)
-    create_index_with_docs(es_client, PAGE_SIZE * TOTAL_PAGES)
+    # create_index_with_docs(es_client, PAGE_SIZE * TOTAL_PAGES)
     # 基本拉取
-    test_elasticsearch_base_pull(es_client)
+    # test_elasticsearch_base_pull(es_client)
+    # 超大数据量大页码拉取
+    test_elasticsearch_single_large_start_pull(es_client)

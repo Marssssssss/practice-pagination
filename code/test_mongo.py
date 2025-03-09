@@ -8,7 +8,7 @@ ES_HOST = 'http://localhost:9200'
 
 # 分页参数
 INDEX_NAME = "test"
-PAGE_SIZE = 10  # 每页的文档数量
+PAGE_SIZE = 400  # 每页的文档数量
 TOTAL_PAGES = 500  # 要查询的总页数
 
 # MongoDB 配置
@@ -28,26 +28,44 @@ def create_docs(mongo_collection, num_docs):
             'value': random.randint(1, 100),
             'description': random_string(30)
         }
-        insert_result = collection.insert_one(doc)
-        print(f"文档 {insert_result.inserted_id} 插入成功: {doc}")
+        insert_result = mongo_collection.insert_one(doc)
 
 
 def test_mongo_base_pull(mongo_collection):
     """ mongo 基本拉取分页 """
     print("开始 MongoDB 分页查询...")
+    start = time.time()
     for page in range(TOTAL_PAGES):
         start_time = time.time()
-        cursor = mongo_collection.find().skip(page * PAGE_SIZE).limit(PAGE_SIZE)
+        cursor = mongo_collection.find().sort({"_id": 1}).skip(page * PAGE_SIZE).limit(PAGE_SIZE)
         results = list(cursor)
         end_time = time.time()
-        print(f"MongoDB - Page {page + 1}: {len(results)} documents fetched in {end_time - start_time:.4f} seconds.")
+    print(f"all_time: {time.time() - start}")
+
+
+def test_mongo_single_large_start_pull(mongo_collection):
+    start = time.time()
+    cursor = mongo_collection.find().sort({"_id": 1}).skip((TOTAL_PAGES - 1) * PAGE_SIZE).limit(PAGE_SIZE)
+    results = list(cursor)
+    print(f"all_time: {time.time() - start}")
 
 
 if __name__ == "__main__":
     # 创建数据
     mongo_client = MongoClient(MONGO_URI)
-    mongo_db = mongo_client['test']
-    mongo_collection = mongo_db['test']
-    create_docs(mongo_collection, PAGE_SIZE * TOTAL_PAGES)
+    mongo_db = mongo_client[INDEX_NAME]
+    # if INDEX_NAME in mongo_db.list_collection_names():
+    #     mongo_db.drop_collection(INDEX_NAME)
+    mongo_collection = mongo_db[INDEX_NAME]
+    # create_docs(mongo_collection, PAGE_SIZE * TOTAL_PAGES)
     # 基本拉取
-    test_mongo_base_pull(mongo_collection)
+    # test_mongo_base_pull(mongo_collection)
+    # 超大数据量大页码单次拉取
+    test_mongo_single_large_start_pull(mongo_collection)
+
+    
+    indexes = mongo_collection.index_information()
+    for index_name, index_info in indexes.items():
+        print(f"Index Name: {index_name}")
+        print(f"Index Info: {index_info}")
+        print("--------")
