@@ -43,6 +43,23 @@ def test_mongo_base_pull(mongo_collection):
     print(f"all_time: {time.time() - start}")
 
 
+def test_mongo_cursor_pull(mongo_collection):
+    """ 游标动态分页拉取 """
+    print("开始动态分页查询")
+    last_value = None
+    start = time.time()
+    while True:
+        if last_id:
+            query = {"_id": {"$gt": last_id}}
+        else:
+            query = {}
+        results = list(collection.find(query).sort("_id").limit(page_size))
+        if not results:
+            break
+        last_id = results[-1["_id"]]
+    print(f"all_time: {time.time() - start}")
+
+
 def test_mongo_single_large_start_pull(mongo_collection):
     start = time.time()
     cursor = mongo_collection.find().sort({"_id": 1}).skip((TOTAL_PAGES - 1) * PAGE_SIZE).limit(PAGE_SIZE)

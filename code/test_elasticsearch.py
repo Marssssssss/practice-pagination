@@ -67,6 +67,30 @@ def test_elasticsearch_base_pull(es_client):
     print(f"all time: {time.time() - start_time}")
 
 
+def test_elasticsearch_cursor_pull(es_client):
+    print("start Elasticsearch cursor paging...")
+    search_after = None
+    start_time = time.time()
+    while True:
+        search_query = {
+            "query": {
+                "match_all": {}
+            },
+            "size": PAGE_SIZE,
+            "sort": [
+                {"value": "asc"},
+                {"_id": "asc"}         # 作为二次排序，确保唯一性
+            ],
+            "search_after": search_after  # 使用上一次查询的最后一条文档的排序值
+        }
+        search_response = es.search(index=INDEX_NAME, body=search_query)
+        hits = search_response['hits']['hits']
+        if not hits:
+            break
+        search_after = hits[-1]['sort']
+    print(f"all time: {time.time() - start_time}")
+
+
 def test_elasticsearch_single_large_start_pull(es_client):
     """ 超大数据量大页码拉取 """
     
